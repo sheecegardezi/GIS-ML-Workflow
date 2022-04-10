@@ -1,10 +1,35 @@
+data/*
+secrets.py
+# Tmp Files
+*.zip
+*.xml
+*.geojson
+frontend/.quasar*
+frontend/node_modules*
+*.tif
+*keys/*
+*setupRayWorkerNode.sh
+*connection_strings*
+*mlflowpbs*
+*core.ray:*
+*core.raylet*
+*.csv
+
+# Python environment
+my_rundir/*
+my_tmpdir/*
+MySandbox/*
+venv/*
+*.idea*
+*.model
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
-
+results*
+configurations/local*
 # C extensions
-*.so
+#*.so
 
 # Distribution / packaging
 .Python
@@ -127,3 +152,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+.vscode/sftp.json
+
+.vscode/
