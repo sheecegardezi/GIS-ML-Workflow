@@ -48,7 +48,7 @@ def calculate_feature_ranking_by_shap(training_dataset, oos_dataset, model_funct
     features_selected = []
     features_rank = []
     features_score = []
-    
+
     for index, row in feature_importance.iterrows():
         features_selected.append(row['col_name'])
         features_rank.append(index)

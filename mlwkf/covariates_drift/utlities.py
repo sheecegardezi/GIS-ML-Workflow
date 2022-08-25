@@ -37,10 +37,10 @@ def get_extent_coordinates(area_of_interest):
     global_x_min, global_y_min, global_x_max, global_y_max = round(x_min), round(y_min), round(x_max), round(y_max)
     x_resolution, y_resolution = abs(round(x_resolution)), abs(round(y_resolution))
 
-    x_resolution = 1 if x_resolution < 1 else x_resolution
+    x_resolution = max(x_resolution, 1)
     x_array = np.arange(global_x_min + 1, global_x_max, x_resolution, dtype=np.int32)
 
-    y_resolution = 1 if y_resolution < 1 else y_resolution
+    y_resolution = max(y_resolution, 1)
     y_array = np.arange(global_y_min + 1, global_y_max, y_resolution, dtype=np.int32)
 
     return x_array, y_array
@@ -66,7 +66,7 @@ def create_line_geotiff(y_index, x_array, covariates, path_to_trained_model, lin
     _, height, width = target_array.shape
     dtype = target_array.dtype
     crs = CRS.from_epsg(3577)
-    output_geotif_path = line_geotiff_folder / Path("line_" + str(y_index) + ".tif")
+    output_geotif_path = line_geotiff_folder / Path(f"line_{str(y_index)}.tif")
 
     with rasterio.open(
             output_geotif_path,
@@ -90,10 +90,12 @@ def divide_chunks(l, n):
 
 @ray.remote
 def merged_line_geotiffs(geotif_file_paths, index, bounds, merged_geotiff_folder):
-    datasets = []
-    for geotif_file_path in geotif_file_paths:
-        datasets.append(rasterio.open(geotif_file_path, 'r'))
-    output_geotif_path = merged_geotiff_folder / Path("merged_" + str(index) + ".tif")
+    datasets = [
+        rasterio.open(geotif_file_path, 'r')
+        for geotif_file_path in geotif_file_paths
+    ]
+
+    output_geotif_path = merged_geotiff_folder / Path(f"merged_{str(index)}.tif")
     merge(datasets=datasets, dst_path=output_geotif_path, bounds=bounds)
     for dataset in datasets:
         dataset.close()
@@ -102,9 +104,11 @@ def merged_line_geotiffs(geotif_file_paths, index, bounds, merged_geotiff_folder
 
 def merged_geotiffs(geotif_file_paths, bounds, output_folder):
 
-    datasets = []
-    for geotif_file_path in geotif_file_paths:
-        datasets.append(rasterio.open(geotif_file_path, 'r'))
+    datasets = [
+        rasterio.open(geotif_file_path, 'r')
+        for geotif_file_path in geotif_file_paths
+    ]
+
     output_geotif_path = output_folder / Path("predicted_model.tif")
     merge(datasets=datasets, dst_path=output_geotif_path, bounds=bounds)
     for dataset in datasets:
@@ -115,11 +119,7 @@ def merged_geotiffs(geotif_file_paths, bounds, output_folder):
 def get_list_of_tifs_to_merge(merged_geotiff_folder):
     list_of_geotifs = []
     paths = merged_geotiff_folder.glob('**/merged*.tif')
-    for path in paths:
-        # because path is object not string
-        path_in_str = str(path)
-        list_of_geotifs.append(path_in_str)
-
+    list_of_geotifs.extend(str(path) for path in paths)
     return list_of_geotifs
 
 
@@ -135,9 +135,19 @@ def create_predicted_geotiff(area_of_interest, covariates, path_to_trained_model
     line_geotiff_folder_id = ray.put(line_geotiff_folder)
     model_id = ray.put(model)
 
-    result_ids = []
-    for y_index in y_array:
-        result_ids.append(create_line_geotiff.options(num_cpus=cpus_per_job, num_gpus=gpu_per_job).remote(y_index, x_array_id, covariates_id, path_to_trained_model_id, line_geotiff_folder_id, model_id))
+    result_ids = [
+        create_line_geotiff.options(
+            num_cpus=cpus_per_job, num_gpus=gpu_per_job
+        ).remote(
+            y_index,
+            x_array_id,
+            covariates_id,
+            path_to_trained_model_id,
+            line_geotiff_folder_id,
+            model_id,
+        )
+        for y_index in y_array
+    ]
 
     print("Wait for the tasks to complete and retrieve the results.")
     line_geotiff_files = ray.get(result_ids)
@@ -159,9 +169,17 @@ def create_predicted_geotiff(area_of_interest, covariates, path_to_trained_model
     bounds_id = ray.put(bounds)
     merged_geotiff_folder_id = ray.put(merged_geotiff_folder)
 
-    result_ids = []
-    for index, chunked_line_geotiff_file in enumerate(chunked_line_geotiff_files):
-        result_ids.append(merged_line_geotiffs.remote(chunked_line_geotiff_file, index, bounds_id, merged_geotiff_folder_id))
+    result_ids = [
+        merged_line_geotiffs.remote(
+            chunked_line_geotiff_file,
+            index,
+            bounds_id,
+            merged_geotiff_folder_id,
+        )
+        for index, chunked_line_geotiff_file in enumerate(
+            chunked_line_geotiff_files
+        )
+    ]
 
     print("Wait for the tasks to complete and retrieve the results.")
     merged_geotif_paths = ray.get(result_ids)
@@ -184,26 +202,26 @@ def create_predicted_geotiff(area_of_interest, covariates, path_to_trained_model
         try:
             os.remove(str(line_geotiff_file))
         except OSError as e:
-            logging.warning("Error: %s : %s" % (line_geotiff_file, e.strerror))
+            logging.warning(f"Error: {line_geotiff_file} : {e.strerror}")
 
     print("deleting chunked folder.")
     try:
         shutil.rmtree(line_geotiff_folder)
     except OSError as e:
-        logging.warning("Error: %s : %s" % (line_geotiff_folder, e.strerror))
+        logging.warning(f"Error: {line_geotiff_folder} : {e.strerror}")
 
     print("deleting chunked files.")
     for merged_geotif_path in merged_geotif_paths:
         try:
             os.remove(str(merged_geotif_path))
         except OSError as e:
-            logging.warning("Error: %s : %s" % (merged_geotif_path, e.strerror))
+            logging.warning(f"Error: {merged_geotif_path} : {e.strerror}")
 
     print("deleting chunked folder.")
     try:
         shutil.rmtree(merged_geotiff_folder)
     except OSError as e:
-        logging.warning("Error: %s : %s" % (merged_geotiff_folder, e.strerror))
+        logging.warning(f"Error: {merged_geotiff_folder} : {e.strerror}")
 
 
     # read aoi that has non data mask

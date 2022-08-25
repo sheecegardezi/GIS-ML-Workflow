@@ -94,7 +94,7 @@ def create_random_point_vector_dataset(area_of_interest, training_dataset, drift
                     }
                 }
 
-                no_of_points_in_target_dataset = no_of_points_in_target_dataset - 1
+                no_of_points_in_target_dataset -= 1
                 output_vector_dataset['features'].append(feature)
 
     path_drift_dataset = output_folder / Path("drift_vector.geojson")

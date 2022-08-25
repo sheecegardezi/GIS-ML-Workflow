@@ -23,15 +23,9 @@ def create_scatter_plot(y_pred, y_oos, output_scatter_plot):
     label = []
     iteration = []
     for i in range(len(y_pred)):
-        data_point.append(float(y_pred[i]))
-        data_point.append(float(y_oos[i]))
-
-        label.append("y_pred")
-        label.append("y_oos")
-
-        iteration.append(i)
-        iteration.append(i)
-
+        data_point.extend((float(y_pred[i]), float(y_oos[i])))
+        label.extend(("y_pred", "y_oos"))
+        iteration.extend((i, i))
     df = pd.DataFrame({'data_point': data_point, 'label': label, 'iteration':iteration}, columns=['data_point', 'label', 'iteration'])
 
     alt.Chart(df).mark_circle(size=30).encode(
@@ -64,8 +58,7 @@ def create_scatter_plot_pred_vs_real(y_pred, y_true, output_scatter_plot):
 
 def get_split_dataset(dataset, n_spits):
     shuffled_dataset = dataset.sample(frac=1, random_state=1).reset_index(drop=True)
-    split_dataset = np.array_split(shuffled_dataset, n_spits)
-    return split_dataset
+    return np.array_split(shuffled_dataset, n_spits)
 
 
 def run_model_exploration_pipeline(config_file_path):
@@ -140,9 +133,9 @@ def run_model_exploration_pipeline(config_file_path):
     df.reset_index(drop=True, inplace=True)
     split_dataset = get_split_dataset(df, n_splits)
 
-    scores = {}
-    for scoring_function in scoring_functions:
-        scores[scoring_function.__name__] = []
+    scores = {
+        scoring_function.__name__: [] for scoring_function in scoring_functions
+    }
 
     actual_labels = []
     predicted_labels = []
@@ -182,9 +175,9 @@ def run_model_exploration_pipeline(config_file_path):
     })
     cv_results_pred_vs_real_path = output_folder / Path("cv_results_pred_vs_real.csv")
     cv_results_df.to_csv(cv_results_pred_vs_real_path, index=False, header=list(cv_results_df.columns.values))
-    
 
-    
+
+
     # X_train = X_train.values
     # y_train_pred = model.predict(X_train)
     # output_scatter_plot = output_folder / "train_scatter_plot.html"

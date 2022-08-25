@@ -19,7 +19,10 @@ def calculate_feature_ranking_by_randomness(training_dataset, no_features_to_sel
     features_rank = []
     features_score = []
     total_number_of_features = len(data_train.columns)
-    random_number_list = random.sample(range(0, total_number_of_features), no_features_to_select)
+    random_number_list = random.sample(
+        range(total_number_of_features), no_features_to_select
+    )
+
     for featureIndex, feature_name in enumerate(data_train.columns):
         if featureIndex in random_number_list:
             features_selected.append(feature_name)

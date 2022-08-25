@@ -19,11 +19,12 @@ from ray.tune.sample import (function, sample_from, uniform, quniform, choice,
 def fillter_out_extra_fields(best_result, scoring_functions):
     keys_to_drop = []
     for key in best_result:
-        flag = False
-        for scoring_function in scoring_functions:
-            if scoring_function.__name__ in key:
-                flag = True
-        if flag is False:
+        flag = any(
+            scoring_function.__name__ in key
+            for scoring_function in scoring_functions
+        )
+
+        if not flag:
             keys_to_drop.append(key)
     for key in keys_to_drop:
         best_result.pop(key)
@@ -53,7 +54,7 @@ def run_hyper_parameter_optimization_pipeline(config_file_path):
     n_splits = config.getint('HyperParameterOptimization', 'n_splits')
     scoring_function_to_use_for_evaluation = config.get('HyperParameterOptimization', 'scoring_function_to_use_for_evaluation')
 
-    logging.warning("Modeling function being used:"+str(model_function))
+    logging.warning(f"Modeling function being used:{str(model_function)}")
 
     if not training_dataset.exists():
         raise Exception("Please provide valid input training dataset file.")
@@ -66,17 +67,26 @@ def run_hyper_parameter_optimization_pipeline(config_file_path):
 
     if algorithm_name in "BayesianOptimization":
         best_estimator_prams, max_trail_id, best_result = run_bayesian_search_algorithm(training_dataset, oos_dataset, selected_features, model_function, hyper_parameters, scoring_functions, n_iteration, n_splits, scoring_function_to_use_for_evaluation, output_folder, cpus_per_job, gpu_per_job)
-        path_to_trained_model = Path(output_folder) / Path("bayesian_optimization_results/" + str(max_trail_id) + "/model.bin")
+        path_to_trained_model = Path(output_folder) / Path(
+            f"bayesian_optimization_results/{str(max_trail_id)}/model.bin"
+        )
+
         config['Results']['path_to_hyper_parameter_search_results'] = str(Path(output_folder) / Path("bayesian_optimization_results.csv"))
 
     elif algorithm_name in "GridSearch":
         best_estimator_prams, max_trail_id, best_result = run_grid_search_algorithm(training_dataset, oos_dataset, selected_features, model_function, hyper_parameters, scoring_functions, n_iteration, n_splits, scoring_function_to_use_for_evaluation, output_folder, cpus_per_job, gpu_per_job)
-        path_to_trained_model = Path(output_folder) / Path("grid_search_results/" + str(max_trail_id) + "/model.bin")
+        path_to_trained_model = Path(output_folder) / Path(
+            f"grid_search_results/{str(max_trail_id)}/model.bin"
+        )
+
         config['Results']['path_to_hyper_parameter_search_results'] = str(Path(output_folder) / Path("grid_search_results.csv"))
 
     elif algorithm_name in "HyperOptSearch":
         best_estimator_prams, max_trail_id, best_result = run_hyperopt_search_algorithm(training_dataset, oos_dataset, selected_features, model_function, hyper_parameters, scoring_functions, n_iteration, n_splits, scoring_function_to_use_for_evaluation, output_folder, cpus_per_job, gpu_per_job)
-        path_to_trained_model = Path(output_folder) / Path("hyperopt_optimization_results/" + str(max_trail_id) + "/model.bin")
+        path_to_trained_model = Path(output_folder) / Path(
+            f"hyperopt_optimization_results/{str(max_trail_id)}/model.bin"
+        )
+
         config['Results']['path_to_hyper_parameter_search_results'] = str(Path(output_folder) / Path("hyperopt_optimization_results.csv"))
     else:
         raise Exception("Algorithm not implemented.")

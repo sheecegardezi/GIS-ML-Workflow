@@ -24,14 +24,13 @@ import pickle5 as pickle
 
 def get_split_dataset(dataset, n_spits):
     shuffled_dataset = dataset.sample(frac=1, random_state=1).reset_index(drop=True)
-    split_dataset = np.array_split(shuffled_dataset, n_spits)
-    return split_dataset
+    return np.array_split(shuffled_dataset, n_spits)
 
 
 @ray.remote
 def get_model_score(i, path_to_split_dataset, model_function, scoring_function, model_function_parameters):
     model = model_function(model_function_parameters)
-    logging.warning("cv iteration: "+str(i))
+    logging.warning(f"cv iteration: {str(i)}")
 
     with open(path_to_split_dataset, 'rb') as handle:
         split_dataset = pickle.load(handle)
@@ -111,7 +110,10 @@ def get_lowest_scoring_feature(result_list):
         feature_names.append(feature_name)
         scores.append(score)
 
-    logging.warning(str(feature_names[scores.index(max(scores))])+" "+str(max(scores)))
+    logging.warning(
+        f"{str(feature_names[scores.index(max(scores))])} {str(max(scores))}"
+    )
+
     return feature_names[scores.index(max(scores))]
 
 
@@ -160,7 +162,7 @@ def calculate_feature_ranking_by_cv_elimination(training_dataset, model_function
     current_total_feature = len(current_features)
 
     while current_total_feature > 1:
-        logging.warning("features remaining: "+str(current_total_feature))
+        logging.warning(f"features remaining: {current_total_feature}")
         iteration_counter = iteration_counter + 1
         results[iteration_counter] = find_least_important_feature_cv(training_dataset, current_features, model_function, n_splits, scoring_function, cpus_per_job, gpu_per_job, output_folder, model_function_parameters)
         lowest_feature = get_lowest_scoring_feature(results[iteration_counter])
@@ -179,7 +181,7 @@ def calculate_feature_ranking_by_cv_elimination(training_dataset, model_function
         print(json.dumps(results, sort_keys=False, indent=4), file=f)
 
     logging.warning(results)
-    logging.warning("time take: "+str(time.time()-start_time))
+    logging.warning(f"time take: {str(time.time() - start_time)}")
     print(results)
     features_selected, features_rank, features_score = get_ranked_features(results)
     return features_selected, features_rank, features_score

@@ -32,8 +32,7 @@ def find_least_important_feature_oos(data, label, oos_dataset, model_function, s
         feature_name_id = ray.put(feature_name)
         work.append(get_out_of_sample_score.remote(data_id, label_id, oos_dataset_id, feature_name_id, model_function_id, scoring_function_id, model_function_parameters))
 
-    result = ray.get(work)
-    return result
+    return ray.get(work)
 
 
 def get_lowest_scoring_feature(result_list):
@@ -46,7 +45,10 @@ def get_lowest_scoring_feature(result_list):
         feature_names.append(feature_name)
         scores.append(score)
 
-    logging.warning(str(feature_names[scores.index(max(scores))])+" "+str(max(scores)))
+    logging.warning(
+        f"{str(feature_names[scores.index(max(scores))])} {str(max(scores))}"
+    )
+
     return feature_names[scores.index(max(scores))]
 
 
@@ -89,8 +91,18 @@ def calculate_feature_ranking_by_oos_elimination(training_dataset, oos_dataset, 
     start_time = time.time()
     ray.init(address='auto', _redis_password='5241590000000000', ignore_reinit_error=True, local_mode=False)
     iteration_counter = 0
-    results = {}
-    results[iteration_counter] = find_least_important_feature_oos(data_train, label_train, oos_dataset, model_function, scoring_function, cpus_per_job, gpu_per_job, model_function_parameters)
+    results = {
+        iteration_counter: find_least_important_feature_oos(
+            data_train,
+            label_train,
+            oos_dataset,
+            model_function,
+            scoring_function,
+            cpus_per_job,
+            gpu_per_job,
+            model_function_parameters,
+        )
+    }
 
     lowest_feature = get_lowest_scoring_feature(results[iteration_counter])
 
@@ -98,7 +110,7 @@ def calculate_feature_ranking_by_oos_elimination(training_dataset, oos_dataset, 
     current_total_feature = current_X.shape[1]
 
     while current_total_feature > 1:
-        logging.warning("features remaining: "+str(current_total_feature))
+        logging.warning(f"features remaining: {str(current_total_feature)}")
         iteration_counter = iteration_counter + 1
         results[iteration_counter] = find_least_important_feature_oos(current_X, label_train, oos_dataset, model_function, scoring_function, cpus_per_job, gpu_per_job, model_function_parameters)
 
@@ -118,7 +130,7 @@ def calculate_feature_ranking_by_oos_elimination(training_dataset, oos_dataset, 
 
 
     logging.warning(results)
-    logging.warning("time take: "+str(time.time()-start_time))
+    logging.warning(f"time take: {str(time.time() - start_time)}")
 
     features_selected, features_rank, features_score = get_ranked_features(results)
     return features_selected, features_rank, features_score

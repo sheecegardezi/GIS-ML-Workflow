@@ -74,11 +74,15 @@ def check_projection_in_target_epsg3577(target_path, output_folder):
     Docs: https://gdal.org/programs/ogr2ogr.html
     """
     new_target_file_path = output_folder / Path(str(target_path.stem + "_reprojected.geojson"))
-    cmd = "ogr2ogr -f GeoJSON -dim XY -t_srs EPSG:3577 " + str(new_target_file_path) + " " + str(target_path)
+    cmd = f"ogr2ogr -f GeoJSON -dim XY -t_srs EPSG:3577 {str(new_target_file_path)} {str(target_path)}"
+
     logging.warning("Running command:")
     logging.warning(cmd)
     subprocess.getstatusoutput(cmd)
-    logging.warning("Reprojected target file created at: "+str(new_target_file_path))
+    logging.warning(
+        f"Reprojected target file created at: {str(new_target_file_path)}"
+    )
+
 
     return new_target_file_path
 
