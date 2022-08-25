@@ -30,9 +30,10 @@ def run_feature_extraction_pipeline(config_file_path):
     training_dataset = Path(config.get('Intermediate', 'training_dataset'))
     oos_dataset = Path(config.get('Intermediate', 'oos_dataset'))
     print("output_folder", output_folder)
-    covariates = []
-    for covariate_path in eval(config.get('Intermediate', 'covariates')):
-        covariates.append(Path(covariate_path))
+    covariates = [
+        Path(covariate_path)
+        for covariate_path in eval(config.get('Intermediate', 'covariates'))
+    ]
 
     algorithm = config.get('FeatureExtraction', 'algorithm')
     no_features_to_select = config.getint('FeatureExtraction', 'no_features_to_select', fallback=-1)
@@ -51,7 +52,7 @@ def run_feature_extraction_pipeline(config_file_path):
         n_splits = config.getint('FeatureExtraction', 'n_splits')
         model_function = eval(config.get('Model', 'model_function'))
         model_function_parameters = eval(config.get('Model', 'parameters', fallback="{}"))
-        logging.warning("Modeling function being used:" + str(model_function))
+        logging.warning(f"Modeling function being used:{str(model_function)}")
         scoring_function = eval(config.get('FeatureExtraction', 'scoring_function'))
         features_selected, features_rank, features_score = calculate_feature_ranking_by_cv_elimination(training_dataset, model_function, n_splits, scoring_function, cpus_per_job, gpu_per_job, output_folder, model_function_parameters)
         path_to_output_chart = create_feature_ranking_graph(features_selected, features_rank, features_score, output_folder)
@@ -97,9 +98,9 @@ def run_feature_extraction_pipeline(config_file_path):
         raise Exception("Algorithm not implemented.")
 
     # update config parameters
-    logging.warning("selected_features: "+str(features_selected))
-    logging.warning("features_rank: " + str(features_rank))
-    logging.warning("features_score: " + str(features_score))
+    logging.warning(f"selected_features: {str(features_selected)}")
+    logging.warning(f"features_rank: {str(features_rank)}")
+    logging.warning(f"features_score: {str(features_score)}")
 
     config['Intermediate']['selected_features'] = features_selected
     config['Workflow']['FeatureExtraction'] = "False"

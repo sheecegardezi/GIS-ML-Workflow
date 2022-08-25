@@ -68,24 +68,18 @@ def create_chunked_vector_csv(chunked_target_list, target_property, i, covariate
     logging.warning("create chunked vector csv")
     logging.warning("Current time: %s", str(time.ctime()))
     # create iterators to inputs feature dataset and target dataset
-    datasets = []
-    for covariate in covariates:
-        datasets.append(rasterio.open(covariate))
-
+    datasets = [rasterio.open(covariate) for covariate in covariates]
     # create the first row containing col names
     head_row = ['target']
-    for covariate in covariates:
-        head_row.append(covariate.stem)
-    head_row.append("x")
-    head_row.append("y")
-
+    head_row.extend(covariate.stem for covariate in covariates)
+    head_row.extend(("x", "y"))
     if target_weight is not None:
         head_row.append("weight")
     if target_groupcv is not None:
         head_row.append("groupcv")
     csv_rowlist = [head_row]
 
-    chunked_csv_path = chunked_csv_folder / Path(str(i) + "_dataset.csv")
+    chunked_csv_path = chunked_csv_folder / Path(f"{str(i)}_dataset.csv")
     with open(chunked_csv_path, 'w', newline='', encoding='utf-8') as outfile:
         writer = csv.writer(outfile)
         # Iterate through list of targets
@@ -93,18 +87,14 @@ def create_chunked_vector_csv(chunked_target_list, target_property, i, covariate
         for target in chunked_target_list:
 
             try:
-                if target_property is None:
-                    value = 0
-                else:
-                    value = target['properties'][target_property]
-
+                value = 0 if target_property is None else target['properties'][target_property]
                 if target_weight is not None:
                     target_weight_value = target['properties'][target_weight]
                 if target_groupcv is not None:
                     target_groupcv_value = target['properties'][target_groupcv]
 
                 # TODO update multiple point logic
-                if type(target['geometry']["coordinates"]) is type(list()):
+                if type(target['geometry']["coordinates"]) is type([]):
                     x, y = target['geometry']['coordinates'][0]
                 elif len(target['geometry']['coordinates']) == 3:
                     x, y, z = target['geometry']['coordinates']
@@ -113,9 +103,7 @@ def create_chunked_vector_csv(chunked_target_list, target_property, i, covariate
                 new_row = [value]
 
                 # Iterate through list of features
-                for dataset in datasets:
-                    new_row.append(next(dataset.sample([(x, y)]))[0])
-
+                new_row.extend(next(dataset.sample([(x, y)]))[0] for dataset in datasets)
                 new_row.append(x)
                 new_row.append(y)
                 if target_weight is not None:
@@ -126,7 +114,7 @@ def create_chunked_vector_csv(chunked_target_list, target_property, i, covariate
                 csv_rowlist.append(new_row)
 
             except Exception as err:
-                logging.warning("Exception: " + str(err))
+                logging.warning(f"Exception: {str(err)}")
                 traceback.print_tb(err.__traceback__)
 
         writer.writerows(csv_rowlist)
@@ -162,7 +150,7 @@ def create_vector_csv(covariates, target_path, target_property, output_folder, t
     :return:
     """
     logging.warning("create vector csv")
-    logging.warning("target_path: "+str(target_path))
+    logging.warning(f"target_path: {str(target_path)}")
 
     target_handle = fiona.open(target_path)
     n = 5000
@@ -172,9 +160,19 @@ def create_vector_csv(covariates, target_path, target_property, output_folder, t
     chunked_csv_folder = output_folder / Path("chunked_csv_folder")
     chunked_csv_folder.mkdir(parents=True, exist_ok=True)
 
-    result_ids = []
-    for i, chunked_target_list in enumerate(chunked_target_lists):
-        result_ids.append(create_chunked_vector_csv.remote(chunked_target_list, target_property, i, covariates, chunked_csv_folder, target_weight, target_groupcv))
+    result_ids = [
+        create_chunked_vector_csv.remote(
+            chunked_target_list,
+            target_property,
+            i,
+            covariates,
+            chunked_csv_folder,
+            target_weight,
+            target_groupcv,
+        )
+        for i, chunked_target_list in enumerate(chunked_target_lists)
+    ]
+
     chunked_csv_paths = ray.get(result_ids)
 
     output_csv_file_path = output_folder / Path(target_path.stem + "_dataset.csv")
@@ -185,7 +183,7 @@ def create_vector_csv(covariates, target_path, target_property, output_folder, t
     try:
         shutil.rmtree(chunked_csv_folder)
     except OSError as e:
-        logging.warning("Error: %s : %s" % (chunked_csv_folder, e.strerror))
+        logging.warning(f"Error: {chunked_csv_folder} : {e.strerror}")
 
     return output_csv_file_path
 
@@ -198,7 +196,7 @@ def create_vrt_datasets(covariates):
         if not os.path.exists(vrt_dataset_path):
             copy(covariate, vrt_dataset_path, driver='VRT')
         else:
-            logging.warning("this vrt dataset already exists: " + str(vrt_dataset_path))
+            logging.warning(f"this vrt dataset already exists: {str(vrt_dataset_path)}")
         vrt_datasets.append(vrt_dataset_path)
 
     return vrt_datasets
@@ -251,7 +249,7 @@ def run_data_preparation_pipeline(config_file_path):
 
     covariates = create_vrt_datasets(covariates)
     for covariate in covariates:
-        logging.warning("New covariate created: " + str(covariate))
+        logging.warning(f"New covariate created: {str(covariate)}")
 
     target_path = Path(config.get('Target', 'target_path'))
     target_property = config.get('Target', 'target_property')
@@ -262,12 +260,15 @@ def run_data_preparation_pipeline(config_file_path):
 
     logging.warning("check target projection in epsg3577")
     target_path = check_projection_in_target_epsg3577(target_path, output_folder)
-    logging.warning("Reprojected target_path file created at: "+str(target_path))
+    logging.warning(f"Reprojected target_path file created at: {str(target_path)}")
 
     area_of_interest = Path(config.get('Target', 'area_of_interest'))
     logging.warning("check area_of_interest projection in epsg3577")
     area_of_interest = ray.get(check_projection_in_epsg3577.remote(area_of_interest, output_folder))
-    logging.warning("Reprojected area_of_interest file created at: "+str(area_of_interest))
+    logging.warning(
+        f"Reprojected area_of_interest file created at: {str(area_of_interest)}"
+    )
+
 
     training_dataset = create_vector_csv(covariates, target_path, target_property, output_folder, target_weight, target_groupcv)
     if target_groupcv is not None:
@@ -288,8 +289,8 @@ def run_data_preparation_pipeline(config_file_path):
         config['Intermediate']['shap_dataset'] = str(shap_dataset)
 
     # update config parameters
-    logging.warning("output training_dataset: " + str(training_dataset))
-    logging.warning("output oos_dataset: " + str(oos_dataset))
+    logging.warning(f"output training_dataset: {str(training_dataset)}")
+    logging.warning(f"output oos_dataset: {str(oos_dataset)}")
 
     config['Intermediate']['target_path'] = str(target_path)
     config['Intermediate']['training_dataset'] = str(training_dataset)

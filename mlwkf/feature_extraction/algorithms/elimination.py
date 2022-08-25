@@ -22,14 +22,12 @@ from mlwkf.feature_extraction.utlities import get_cross_validation_score, get_ou
 def find_least_important_feature_cv(data, label, oos_dataset, model_function, n_splits, scoring_function, cpus_per_job, gpu_per_job):
 
     work = [get_cross_validation_score.remote(data, label, n_splits, feature_name, model_function, scoring_function) for feature_name in data.columns.values]
-    result = ray.get(work)
-    return result
+    return ray.get(work)
 
 def find_least_important_feature_oos(data, label, oos_dataset, model_function, n_splits, scoring_function, cpus_per_job, gpu_per_job):
 
     work = [get_out_of_sample_score.remote(data, label, oos_dataset, feature_name, model_function, scoring_function) for feature_name in data.columns.values]
-    result = ray.get(work)
-    return result
+    return ray.get(work)
 
 
 def get_lowest_scoring_feature(result_list):
@@ -42,7 +40,10 @@ def get_lowest_scoring_feature(result_list):
         feature_names.append(feature_name)
         scores.append(score)
 
-    logging.warning(str(feature_names[scores.index(max(scores))])+" "+str(max(scores)))
+    logging.warning(
+        f"{str(feature_names[scores.index(max(scores))])} {str(max(scores))}"
+    )
+
     return feature_names[scores.index(max(scores))]
 
 
@@ -81,12 +82,30 @@ def calculate_feature_ranking_by_elimination(training_dataset, oos_dataset, mode
     start_time = time.time()
     ray.init(address='auto', _redis_password='5241590000000000', ignore_reinit_error=True, local_mode=False)
     iteration_counter = 0
-    results = {}
+    results = {
+        iteration_counter: find_least_important_feature_oos(
+            data_train,
+            label_train,
+            oos_dataset,
+            model_function,
+            n_splits,
+            scoring_function,
+            cpus_per_job,
+            gpu_per_job,
+        )
+        if use_oos
+        else find_least_important_feature_cv(
+            data_train,
+            label_train,
+            oos_dataset,
+            model_function,
+            n_splits,
+            scoring_function,
+            cpus_per_job,
+            gpu_per_job,
+        )
+    }
 
-    if use_oos:
-        results[iteration_counter] = find_least_important_feature_oos(data_train, label_train, oos_dataset, model_function, n_splits, scoring_function, cpus_per_job, gpu_per_job)
-    else:
-        results[iteration_counter] = find_least_important_feature_cv(data_train, label_train, oos_dataset, model_function, n_splits, scoring_function, cpus_per_job, gpu_per_job)
 
     lowest_feature = get_lowest_scoring_feature(results[iteration_counter])
 
@@ -94,7 +113,7 @@ def calculate_feature_ranking_by_elimination(training_dataset, oos_dataset, mode
     current_total_feature = current_X.shape[1]
 
     while current_total_feature > 1:
-        logging.warning("features remaining: "+str(current_total_feature))
+        logging.warning(f"features remaining: {str(current_total_feature)}")
         iteration_counter = iteration_counter + 1
         if use_oos:
             results[iteration_counter] = find_least_important_feature_oos(current_X, label_train, oos_dataset, model_function, n_splits, scoring_function, cpus_per_job, gpu_per_job)
@@ -114,7 +133,7 @@ def calculate_feature_ranking_by_elimination(training_dataset, oos_dataset, mode
 
 
     logging.warning(results)
-    logging.warning("time take: "+str(time.time()-start_time))
+    logging.warning(f"time take: {str(time.time() - start_time)}")
 
     selected_features, feature_ranks = get_ranked_features(results)
     return selected_features, feature_ranks

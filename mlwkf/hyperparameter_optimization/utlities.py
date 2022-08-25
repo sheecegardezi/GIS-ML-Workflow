@@ -33,16 +33,19 @@ def get_group_cross_validation_score(training_dataset, selected_features, model,
 
     df = pd.read_csv(training_dataset)
     if "groupcv" not in df.columns.values:
-        scores = {}
-        for scoring_function in scoring_functions:
-            scores["groupcv_" + scoring_function.__name__] = 0
+        scores = {
+            "groupcv_" + scoring_function.__name__: 0
+            for scoring_function in scoring_functions
+        }
+
         return scores
 
     split_dataset = get_group_cv_split_dataset(training_dataset, n_splits)
 
-    results = {}
-    for scoring_function in scoring_functions:
-        results[scoring_function.__name__] = {"each_split_score": [], "mean_score": None}
+    results = {
+        scoring_function.__name__: {"each_split_score": [], "mean_score": None}
+        for scoring_function in scoring_functions
+    }
 
     n_splits = len(split_dataset)
     for i in range(n_splits):
@@ -67,17 +70,20 @@ def get_group_cross_validation_score(training_dataset, selected_features, model,
     for scoring_function in scoring_functions:
         results[scoring_function.__name__]["mean_score"] = np.mean(results[scoring_function.__name__]["each_split_score"])
 
-    scores = {}
-    for scoring_function in scoring_functions:
-        scores["groupcv_" + scoring_function.__name__] = results[scoring_function.__name__]["mean_score"]
+    scores = {
+        "groupcv_"
+        + scoring_function.__name__: results[scoring_function.__name__][
+            "mean_score"
+        ]
+        for scoring_function in scoring_functions
+    }
 
     return scores
 
 
 def get_split_dataset(dataset, n_spits):
     shuffled_dataset = dataset.sample(frac=1, random_state=1).reset_index(drop=True)
-    split_dataset = np.array_split(shuffled_dataset, n_spits)
-    return split_dataset
+    return np.array_split(shuffled_dataset, n_spits)
 
 
 def get_cross_validation_score(training_dataset, n_splits, selected_features, model, scoring_functions):
@@ -89,9 +95,10 @@ def get_cross_validation_score(training_dataset, n_splits, selected_features, mo
     df.reset_index(drop=True, inplace=True)
     split_dataset = get_split_dataset(df, n_splits)
 
-    results = {}
-    for scoring_function in scoring_functions:
-        results[scoring_function.__name__] = {"each_split_score": [], "mean_score": None}
+    results = {
+        scoring_function.__name__: {"each_split_score": [], "mean_score": None}
+        for scoring_function in scoring_functions
+    }
 
     for i in range(n_splits):
         train_dataset = copy.deepcopy(split_dataset)
@@ -115,11 +122,13 @@ def get_cross_validation_score(training_dataset, n_splits, selected_features, mo
     for scoring_function in scoring_functions:
         results[scoring_function.__name__]["mean_score"] = np.mean(results[scoring_function.__name__]["each_split_score"])
 
-    scores = {}
-    for scoring_function in scoring_functions:
-        scores["cv_" + scoring_function.__name__] = results[scoring_function.__name__]["mean_score"]
-
-    return scores
+    return {
+        "cv_"
+        + scoring_function.__name__: results[scoring_function.__name__][
+            "mean_score"
+        ]
+        for scoring_function in scoring_functions
+    }
 
 
 
@@ -147,12 +156,14 @@ def get_out_of_sample_score(training_dataset, oos_dataset, selected_features, mo
 
     model.fit(data_train, label_train)
 
-    model_file_path = Path(ray.tune.get_trial_dir()) / str("model.bin")
+    model_file_path = Path(ray.tune.get_trial_dir()) / "model.bin"
     model.save(model_file_path)
 
     label_pred = model.predict(data_oos)
-    scores = {}
-    for scoring_function in scoring_functions:
-        scores["oos_" + scoring_function.__name__] = scoring_function(label_oos, label_pred, len(data_train.columns))
-
-    return scores
+    return {
+        "oos_"
+        + scoring_function.__name__: scoring_function(
+            label_oos, label_pred, len(data_train.columns)
+        )
+        for scoring_function in scoring_functions
+    }

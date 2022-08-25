@@ -155,7 +155,7 @@ class TestConfigFileDataTypes:
     def test_output_folder_parameter_types(self, config):
         output_folder = list(config['OutputFolder'].keys())[0]
         if output_folder is None:
-            raise Exception(f'Output folder path is missing.')
+            raise Exception('Output folder path is missing.')
         assert Path(list(config['OutputFolder'].keys())[0]).exists()
 
     def test_model_parameter_types(self, config):

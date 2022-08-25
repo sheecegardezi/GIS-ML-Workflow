@@ -44,7 +44,10 @@ def main():
 
     # create output directory
     output_folder = Path(list(config['OutputFolder'].keys())[0])
-    logging.warning("Creating output folder if it dose not exist: "+str(output_folder))
+    logging.warning(
+        f"Creating output folder if it dose not exist: {str(output_folder)}"
+    )
+
     output_folder.mkdir(parents=True, exist_ok=True)
 
     start_experiment_time = time.time()
@@ -52,52 +55,76 @@ def main():
         start_data_preparation_time = time.time()
         logging.warning("Preforming DataPreparation")
         run_data_preparation_pipeline(config_file_path)
-        logging.warning("Time taken DataPreparation: %s seconds" % (time.time() - start_data_preparation_time))
+        logging.warning(
+            f"Time taken DataPreparation: {time.time() - start_data_preparation_time} seconds"
+        )
+
         logging.warning("Finished DataPreparation")
 
     if config.getboolean('Workflow', 'DataExploration'):
         logging.warning("Running DataExploration")
         start_data_exploration_time = time.time()
         run_data_exploration_pipeline(config_file_path)
-        logging.warning("Time taken DataExploration: %s seconds" % (time.time() - start_data_exploration_time))
+        logging.warning(
+            f"Time taken DataExploration: {time.time() - start_data_exploration_time} seconds"
+        )
+
         logging.warning("Finished DataExploration")
 
     if config.getboolean('Workflow', 'FeatureExtraction'):
         logging.warning("Running FeatureExtraction")
         start_feature_extraction_time = time.time()
         run_feature_extraction_pipeline(config_file_path)
-        logging.warning("Time taken FeatureExtraction: %s seconds" % (time.time() - start_feature_extraction_time))
+        logging.warning(
+            f"Time taken FeatureExtraction: {time.time() - start_feature_extraction_time} seconds"
+        )
+
         logging.warning("Finished FeatureExtraction")
 
     if config.getboolean('Workflow', 'HyperParameterOptimization'):
         logging.warning("Running HyperParameterOptimization")
         start_hyperparameter_optimization_time = time.time()
         run_hyper_parameter_optimization_pipeline(config_file_path)
-        logging.warning("Time taken HyperParameterOptimization: %s seconds" % (time.time() - start_hyperparameter_optimization_time))
+        logging.warning(
+            f"Time taken HyperParameterOptimization: {time.time() - start_hyperparameter_optimization_time} seconds"
+        )
+
         logging.warning("Finished HyperParameterOptimization")
 
     if config.getboolean('Workflow', 'ModelExploration'):
         logging.warning("TODO: Running ModelExploration")
         start_model_exploration_time = time.time()
         run_model_exploration_pipeline(config_file_path)
-        logging.warning("Time taken ModelExploration: %s seconds" % (time.time() - start_model_exploration_time))
+        logging.warning(
+            f"Time taken ModelExploration: {time.time() - start_model_exploration_time} seconds"
+        )
+
         logging.warning("TODO: Finished ModelExploration")
 
     if config.getboolean('Workflow', 'PredictionMapping'):
         logging.warning("Running Prediction")
         start_prediction_mapping_time = time.time()
         run_prediction_pipeline(config_file_path)
-        logging.warning("Time taken PredictionMapping: %s seconds" % (time.time() - start_prediction_mapping_time))
+        logging.warning(
+            f"Time taken PredictionMapping: {time.time() - start_prediction_mapping_time} seconds"
+        )
+
         logging.warning("Finished Prediction")
 
     if config.getboolean('Workflow', 'CovariateDrift'):
         logging.warning("Running Covariate Drift")
         start_prediction_mapping_time = time.time()
         run_covariate_drift_pipeline(config_file_path)
-        logging.warning("Time taken PredictionMapping: %s seconds" % (time.time() - start_prediction_mapping_time))
+        logging.warning(
+            f"Time taken PredictionMapping: {time.time() - start_prediction_mapping_time} seconds"
+        )
+
         logging.warning("Finished CovariateDrift")
 
-    logging.warning("Time take to complete experiment: %s seconds" % (time.time() - start_experiment_time))
+    logging.warning(
+        f"Time take to complete experiment: {time.time() - start_experiment_time} seconds"
+    )
+
     logging.warning("Finished ML Workflow")
 
 

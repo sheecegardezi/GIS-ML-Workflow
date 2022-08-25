@@ -199,8 +199,7 @@ class QuantileGradientBoosting(BaseEstimator, RegressorMixin):
 
     @staticmethod
     def collect_prediction(regressor, X_test):
-        y_pred = regressor.predict(X_test)
-        return y_pred
+        return regressor.predict(X_test)
 
     def fit(self, X, y):
         log.info('Fitting gb base model')

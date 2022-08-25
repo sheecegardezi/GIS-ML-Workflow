@@ -32,15 +32,17 @@ def get_out_of_sample_score(training_dataset, oos_dataset, selected_features, mo
 
     model.fit(data_train, label_train)
 
-    model_file_path = output_folder / Path(str("oos_model.bin"))
+    model_file_path = output_folder / Path("oos_model.bin")
     model.save(model_file_path)
 
     label_pred = model.predict(data_oos)
-    scores = {}
-    for scoring_function in scoring_functions:
-        scores["oos_"+scoring_function.__name__] = scoring_function(label_oos, label_pred, len(data_train.columns))
-
-    return scores
+    return {
+        "oos_"
+        + scoring_function.__name__: scoring_function(
+            label_oos, label_pred, len(data_train.columns)
+        )
+        for scoring_function in scoring_functions
+    }
 
 
 def get_cross_validation_score(training_dataset, n_splits, selected_features, model, scoring_functions, output_folder):
@@ -52,9 +54,10 @@ def get_cross_validation_score(training_dataset, n_splits, selected_features, mo
     df.reset_index(drop=True, inplace=True)
     split_dataset = get_split_dataset(df, n_splits)
 
-    results = {}
-    for scoring_function in scoring_functions:
-        results[scoring_function.__name__] = {"each_split_score": [], "mean_score": None}
+    results = {
+        scoring_function.__name__: {"each_split_score": [], "mean_score": None}
+        for scoring_function in scoring_functions
+    }
 
     for i in range(n_splits):
         train_dataset = copy.deepcopy(split_dataset)
@@ -69,7 +72,7 @@ def get_cross_validation_score(training_dataset, n_splits, selected_features, mo
 
         model.fit(X_train, y_train)
 
-        model_file_path = output_folder / Path(str(i)+str("_cv_model.bin"))
+        model_file_path = output_folder / Path(f"{str(i)}_cv_model.bin")
         model.save(model_file_path)
 
         y_pred = model.predict(X_test)
@@ -80,17 +83,18 @@ def get_cross_validation_score(training_dataset, n_splits, selected_features, mo
     for scoring_function in scoring_functions:
         results[scoring_function.__name__]["mean_score"] = np.mean(results[scoring_function.__name__]["each_split_score"])
 
-    scores = {}
-    for scoring_function in scoring_functions:
-        scores["cv_"+scoring_function.__name__] = results[scoring_function.__name__]["mean_score"]
-
-    return scores
+    return {
+        "cv_"
+        + scoring_function.__name__: results[scoring_function.__name__][
+            "mean_score"
+        ]
+        for scoring_function in scoring_functions
+    }
 
 
 def get_split_dataset(dataset, n_spits):
     shuffled_dataset = dataset.sample(frac=1, random_state=1).reset_index(drop=True)
-    split_dataset = np.array_split(shuffled_dataset, n_spits)
-    return split_dataset
+    return np.array_split(shuffled_dataset, n_spits)
 
 
 def create_chunked_target(l, n):
@@ -104,8 +108,7 @@ def infer_trial_resources():
     '''Infer the resources_per_trial for ray from spec'''
     num_cpus = int(ray.cluster_resources()["CPU"])
     num_gpus = int(torch.cuda.device_count() if torch.cuda.is_available() else 0)
-    resources_per_trial = {'cpu': num_cpus, 'gpu': num_gpus}
-    return resources_per_trial
+    return {'cpu': num_cpus, 'gpu': num_gpus}
 
 def get_formated_dataframe(df):
     df = df.astype('float32')

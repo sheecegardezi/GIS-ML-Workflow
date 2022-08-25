@@ -127,7 +127,6 @@ def output_results(path_to_raw_results_file, output_folder):
     lowest_feature = []
     lowest_score = []
     iteration = []
-    rank = []
     for iteration_id in rawResultsObject:
         lowest_feature.append(rawResultsObject[iteration_id]["lowest_feature"])
         lowest_score.append(rawResultsObject[iteration_id]["lowest_score"])
@@ -135,14 +134,12 @@ def output_results(path_to_raw_results_file, output_folder):
 
     top_features = list(set(list_of_all_features) - set(lowest_feature))
 
-    for i, feature in enumerate(top_features):
+    for feature in top_features:
         lowest_feature.append(feature)
         lowest_score.append(lowest_score[-1] + 0.01)
         iteration.append(iteration[-1])
 
-    for iteration_id in iteration:
-        rank.append(iteration_id - len(top_features))
-
+    rank = [iteration_id - len(top_features) for iteration_id in iteration]
     # save ranked feature list
     path_to_ranked_feature_list = output_folder / Path(path_to_raw_results_file.stem + ".csv")
     with open(path_to_ranked_feature_list, "w", newline='') as csv_file:
@@ -166,7 +163,10 @@ def output_results(path_to_raw_results_file, output_folder):
     max_y = max(lowest_score) + 0.01
     df = pd.DataFrame({'rank': rank, 'feature': lowest_feature, 'score': lowest_score, 'iteration': iteration},
                       columns=['rank', 'feature', 'score', 'iteration'])
-    path_to_output_chart = output_folder / Path(str(path_to_raw_results_file.stem) + ".html")
+    path_to_output_chart = output_folder / Path(
+        f"{str(path_to_raw_results_file.stem)}.html"
+    )
+
     logging.warning("Output graph file name: %s", str(path_to_output_chart))
     alt.Chart(df).mark_circle(size=60).encode(
         x=alt.X('iteration', scale=alt.Scale(domain=[max(iteration), min(iteration)]),

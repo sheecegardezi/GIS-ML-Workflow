@@ -29,12 +29,10 @@ class TestDtaPreparationPipeline:
         number_of_records = 5
         file_paths = []
         for i in range(number_of_records):
-            file_path = PROJECT_ROOT_FOLDER / pathlib.Path(str(i)+".csv")
-            f = open(file_path, "w")
-            f.write("id,col\n")
-            f.write("1,"+str(i)+"\n")
-            f.close()
-
+            file_path = PROJECT_ROOT_FOLDER / pathlib.Path(f"{str(i)}.csv")
+            with open(file_path, "w") as f:
+                f.write("id,col\n")
+                f.write(f"1,{str(i)}" + "\n")
             file_paths.append(file_path)
         output_file_path = PROJECT_ROOT_FOLDER / pathlib.Path("out.csv")
         # merge multiple csv files using the function

@@ -38,7 +38,8 @@ class TestSystemSanity:
         process = Popen(cmd, shell=True)
         process.wait()
 
-        cmd = "cd " + str(PROJECT_ROOT_FOLDER) + " && python -m mlwkf -c " + str(RELATIVE_PATH_TO_CONFIG_FILE)
+        cmd = f"cd {str(PROJECT_ROOT_FOLDER)} && python -m mlwkf -c {str(RELATIVE_PATH_TO_CONFIG_FILE)}"
+
         process = Popen(cmd, shell=True)
         process.wait()
         print(process)

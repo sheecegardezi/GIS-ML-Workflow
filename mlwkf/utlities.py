@@ -41,9 +41,7 @@ def flatten(x):
     flatten( [[3, 4], [[5, 6], 6]])
     output: [3, 4, 5, 6, 6]
     """
-    if isinstance(x, Iterable):
-        return sum([flatten(i) for i in x], [])
-    return [x]
+    return sum((flatten(i) for i in x), []) if isinstance(x, Iterable) else [x]
 
 
 
@@ -61,8 +59,7 @@ def infer_trial_resources():
     '''Infer the resources_per_trial for ray from spec'''
     num_cpus = int(ray.cluster_resources()["CPU"])
     num_gpus = int(torch.cuda.device_count() if torch.cuda.is_available() else 0)
-    resources_per_trial = {'cpu': num_cpus, 'gpu': num_gpus}
-    return resources_per_trial
+    return {'cpu': num_cpus, 'gpu': num_gpus}
 
 
 def get_formated_dataframe(df):

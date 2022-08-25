@@ -70,9 +70,10 @@ class BootstrappedXGBRegressor(object):
 
         self.predicted_results = None
 
-        self.models = []
-        for i in range(self.bootstrapped_number_of_models):
-            self.models.append(xgb.Booster(self.param))
+        self.models = [
+            xgb.Booster(self.param)
+            for _ in range(self.bootstrapped_number_of_models)
+        ]
 
         self.hyper_parameters = {
             'learning_rate': [0.01, 0.1],
@@ -108,10 +109,11 @@ class BootstrappedXGBRegressor(object):
 
     def predict(self, data):
 
-        predicted_results = []
         data = xgb.DMatrix(data, feature_names=self.models[0].feature_names, nthread=-1)
-        for i in range(self.bootstrapped_number_of_models):
-            predicted_results.append(self.models[i].predict(data))
+        predicted_results = [
+            self.models[i].predict(data)
+            for i in range(self.bootstrapped_number_of_models)
+        ]
 
         predicted_results = np.array(predicted_results)
         self.predicted_results = predicted_results
@@ -181,9 +183,9 @@ class BootstrappedSVMRegressor(object):
 
         self.predicted_results = None
 
-        self.models = []
-        for i in range(self.bootstrapped_number_of_models):
-            self.models.append(NuSVR(**self.param))
+        self.models = [
+            NuSVR(**self.param) for _ in range(self.bootstrapped_number_of_models)
+        ]
 
         self.hyper_parameters = {}
 
@@ -200,9 +202,10 @@ class BootstrappedSVMRegressor(object):
 
     def predict(self, data):
 
-        predicted_results = []
-        for i in range(self.bootstrapped_number_of_models):
-            predicted_results.append(self.models[i].predict(data))
+        predicted_results = [
+            self.models[i].predict(data)
+            for i in range(self.bootstrapped_number_of_models)
+        ]
 
         predicted_results = np.array(predicted_results)
         self.predicted_results = predicted_results

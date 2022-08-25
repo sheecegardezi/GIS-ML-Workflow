@@ -29,7 +29,6 @@ def adjusted_r2_scorer(y_true, y_pred, no_of_covariates, *args):
     n = len(y_pred)
     p = no_of_covariates
     score = 1 - (1 - r2) * ((n - 1) / (n - p - 1))
-    if score < 0:
-        score = 0
+    score = max(score, 0)
     return score
 
